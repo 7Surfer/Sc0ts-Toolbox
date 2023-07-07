@@ -7,8 +7,8 @@
 // @match        https://www.pr0game.com/uni*
 // @match        https://pr0game.com/uni*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=pr0game.com
-// @updateURL    TBD
-// @downloadURL  TBD
+// @updateURL    https://github.com/7Surfer/Sc0ts-Toolbox/raw/main/Sc0tsToolbox.user.js
+// @downloadURL  https://github.com/7Surfer/Sc0ts-Toolbox/raw/main/Sc0tsToolbox.user.js
 // @grant        none
 // ==/UserScript==
 
