@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Sc0ts Toolbox
 // @namespace    http://tampermonkey.net/
-// @version      0.1
-// @description  try to take over the world!
+// @version      0.2
+// @description  Tools for pr0game
 // @author       Sc0t
 // @match        https://www.pr0game.com/uni*
 // @match        https://pr0game.com/uni*
@@ -13,8 +13,9 @@
 // ==/UserScript==
 
 
-/* ToDo:
+/* Random Notes
     - Language support (Einstellungen)
+    - Add config for uni settings (on each module?) (global, current uni)
 */
 
 (function() {
@@ -82,6 +83,8 @@
                 return Settings._instance
             }
             Settings._instance = this;
+            this.prefix = "ST_";
+            this.uni = window.location.pathname.split("/")[1] + "_";
         }
 
         setModules(modules){
@@ -121,7 +124,7 @@
             const moduleId = modulSettings.get("id");
 
             for (const [settingsLabel, settingsValue] of modulSettings.entries()) {
-                const settingKey = moduleId + settingsLabel;
+                const settingKey = moduleId + "_" + settingsLabel;
 
                 // ID is used as uniq PRefix for the modules settings
                 if (settingsLabel === 'id') {
@@ -165,11 +168,11 @@
         }
 
         save(setting, value){
-            localStorage.setItem(setting, value);
+            localStorage.setItem(this.prefix + this.uni + setting, value);
         }
         
         load(setting){
-            return localStorage.getItem(setting)
+            return localStorage.getItem(this.prefix + this.uni + setting)
         }
 
         _insertModulSettingsHeadderNode(settingsBody, label){
@@ -185,19 +188,56 @@
     }
 
     //Modules
-    class PlanetShortcut {
-        constructor() {
-            this.moduleId = "PS";
+    /**
+     * Abstract Base Class
+     */
+    class Module {
+        constructor(moduleId, moduleName) {
+            //Force abstrt
+            if (new.target === Module) {
+                throw new TypeError("Cannot construct Abstract instances directly");
+            }
+
+            this.moduleId = moduleId;
             this.settings = new Settings()
             this.page = new Page();
+
+
+            this.settingConfig = new Map();
+            this.settingConfig.set('id', this.moduleId);
+            this.settingConfig.set('label', moduleName);
+            this.settingConfig.set('Aktiviert', Settings.valueOptions.Checkbox);
+           
+            this._extendSettings()
         }
 
         getSettings(){
-            let settingConfig = new Map();
-            settingConfig.set('id', this.moduleId);
-            settingConfig.set('label',"Planeten Shortcuts");
-            settingConfig.set('Aktiviert',Settings.valueOptions.Checkbox);
-            return settingConfig;
+            return this.settingConfig
+        }
+
+        _extendSettings(){
+            throw new TypeError("extendSettings is required at Child Class");
+        }
+
+        _save(key,value){
+            this.settings.save(this.moduleId + "_" + key, value)
+        }
+
+        _load(key){
+            return this.settings.load(this.moduleId + "_" + key)
+        }
+
+        run(){
+            throw new TypeError("run is required at Child Class");
+        }
+    }
+
+    class PlanetShortcut extends Module{
+        constructor() {
+            super("PS", "Planeten Shortcuts")
+        }
+
+        _extendSettings(){
         }
 
         _getShortcutCustomId(shortcut){
@@ -225,7 +265,7 @@
                     }
 
                     //update shortcut Settings
-                    tath.settings.save(tath.moduleId + "settings", JSON.stringify(shortcutSettings))
+                    tath._save("settings", JSON.stringify(shortcutSettings))
                 }
             })
         }
@@ -266,11 +306,12 @@
         }
 
         run(){
-            if (this.settings.load(this.moduleId + "Aktiviert")==='false') {
+            let enabled = this._load("Aktiviert") || 'false';
+            if (enabled === 'false') {
                 return;
             }
             //load Current Settings
-            let shortcutSettings = JSON.parse(this.settings.load(this.moduleId + "settings")) || {};
+            let shortcutSettings = JSON.parse(this._load("settings")) || {};
 
             this._addEventListenerToSave(shortcutSettings);
 
