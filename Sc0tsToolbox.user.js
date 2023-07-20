@@ -55,7 +55,7 @@
         }
 
         getPage(){
-            const currentPage = window.location.search.split("=")[1].toLowerCase()
+            const currentPage = window.location.search.split("=")[1].toLowerCase().split("&")[0].toLowerCase()
             console.log(currentPage)
             return currentPage
         }
@@ -73,8 +73,24 @@
         Singleton
     */
     class Settings {
+        //Available settings options
         static valueOptions = {
             Checkbox: "checkbox",
+            Select: "select",
+        }
+
+        //some example of how a settings config can look like
+        static settingsConfig = {
+            Checkbox : {
+                checked: false,
+            },
+            Select: {
+                options: [
+                    {value: "key1", text:"text1"},
+                    {value: "key2", text:"text2"},
+                ],
+                default: "key1"
+            }
         }
 
         constructor() {
@@ -134,28 +150,32 @@
                 if (settingsLabel === 'label') {
                     this._insertModulSettingsHeadderNode(settingsBody, settingsValue)
                 }else{
+                    const settingsRow = document.createElement('tr');
                     const label = document.createElement('td');
                     label.width = "50%"
                     label.innerHTML= settingsLabel;
                     const setting = document.createElement('td');
                     setting.width = "50%"
 
-                    switch (settingsValue) {
+                    switch (settingsValue.type) {
                         case Settings.valueOptions.Checkbox:
-                            setting.appendChild(this._getCheckbox(settingKey));
+                            setting.appendChild(this._getCheckbox(settingKey, settingsValue.config));
+                            break;
+                        case Settings.valueOptions.Select:
+                            setting.appendChild(this._getSelect(settingKey, settingsValue.config));
                             break;
                     
                         default:
                             console.log("Something went wrong. Please contact Sc0t")
                             break;
                     }
-                    
-                    settingsBody.append(label, setting);
+                    settingsRow.append(label, setting);
+                    settingsBody.append(settingsRow);
                 }
             }
         }
 
-        _getCheckbox(settingKey){
+        _getCheckbox(settingKey, settingsConfig){
             const checkbox = document.createElement('input');
             checkbox.type = "checkbox";
             
@@ -163,8 +183,40 @@
                 this.save(settingKey, checkbox.checked);
             }.bind(this));
             
-            checkbox.checked = this.load(settingKey) === 'true' ;
+            let savedState = this.load(settingKey)
+            if (savedState){
+                checkbox.checked = savedState === 'true';
+            }
+            else{
+                checkbox.checked = settingsConfig.checked;
+            }
+
             return checkbox
+        }
+
+        _getSelect(settingKey, settingsConfig){
+            const selectList = document.createElement('select');
+            
+            selectList.addEventListener("change", function() {
+                this.save(settingKey, selectList.value);
+            }.bind(this));
+
+            settingsConfig.options.forEach(definedOption => {
+                var option = document.createElement("option");
+                option.value = definedOption.value;
+                option.text = definedOption.text;
+                selectList.appendChild(option);
+            });
+
+            let savedState = this.load(settingKey)
+            if (savedState){
+                selectList.value = savedState
+            }
+            else{
+                selectList.value = settingsConfig.default;
+            }
+
+            return selectList
         }
 
         save(setting, value){
@@ -206,7 +258,13 @@
             this.settingConfig = new Map();
             this.settingConfig.set('id', this.moduleId);
             this.settingConfig.set('label', moduleName);
-            this.settingConfig.set('Aktiviert', Settings.valueOptions.Checkbox);
+
+            this.settingConfig.set('Aktiviert', {
+                type: Settings.valueOptions.Checkbox, 
+                config: {
+                    checked: false
+                }
+            });
            
             this._extendSettings()
         }
@@ -334,12 +392,87 @@
         }
     }
 
+    class Notes extends Module{
+        constructor() {
+            super("N", "Notizen")
+        }
+
+        _extendSettings(){
+            this.settingConfig.set('Übersichts Notizen', {
+                type: Settings.valueOptions.Select, 
+                config: {
+                    options: [
+                        {value: "disabled", text:"Deaktiviert"},
+                        {value: 0, text:"Postion 1"},
+                        {value: 1, text:"Postion 2"},
+                        {value: 2, text:"Postion 3"},
+                        {value: 3, text:"Postion 4"},
+                        {value: 4, text:"Postion 5"},
+                    ],
+                    default: "disabled"
+                }
+            });
+        }
+
+        run(){
+            let enabled = this._load("Aktiviert") || 'false';
+            if (enabled === 'false') {
+                return;
+            }
+
+            let overviewSettings = this._load("Übersichts Notizen") || 'false';
+            if (overviewSettings != 'disabled') {
+                this._createOVerviewNotesHtml(overviewSettings);
+            }
+        }
+
+        _createOVerviewNotesHtml(overviewSettings){
+            //Get Reference Nodes
+            const positionIndex = parseInt(overviewSettings)
+            const anchorNodes = document.getElementsByClassName("infos")
+            const overviewContainer = document.getElementsByClassName("infos")[2];
+            const overviewHeadder = overviewContainer.firstElementChild;
+            const overviewContent = overviewContainer.children[2];
+
+            //Clone Reference Nodes and Modify
+            const notesContainer =  overviewContainer.cloneNode(false);
+            const noteHeader = overviewHeadder.cloneNode();
+            noteHeader.innerHTML = "Notizen";
+            const notedataContaner = overviewContent.cloneNode();
+            
+            const textArea = document.createElement("textarea");
+            textArea.style.marginTop = "20px";
+            textArea.rows = 10;
+            textArea.value = this._load("notes_overview");
+            
+            //add to HTML
+            notedataContaner.appendChild(textArea);
+            notesContainer.append(noteHeader, notedataContaner);
+
+            if (anchorNodes.length === positionIndex){
+                anchorNodes[positionIndex-1].parentNode.insertBefore(notesContainer, anchorNodes[positionIndex-1].nextSibling);
+            }
+            else{
+                anchorNodes[positionIndex].parentNode.insertBefore(notesContainer, anchorNodes[positionIndex]);
+            }
+
+            //add Save
+            const tath = this;
+            textArea.addEventListener("input", function() {
+                tath._save("notes_overview", this.value)
+            });
+        }
+    }
+
     //Main
     function run() {
         const page = new Page()
         switch (page.getPage()) {
             case "fleetstep1":
                 pS.run()
+                break;
+            case "overview":
+                notes.run()
                 break;
             default:
                 break;
@@ -348,8 +481,10 @@
 
 
     const pS = new PlanetShortcut()
+    const notes = new Notes()
     const modules = [
         pS,
+        notes
     ];
     const settings = new Settings()
     settings.setModules(modules)
