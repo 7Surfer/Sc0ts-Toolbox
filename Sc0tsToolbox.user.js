@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sc0ts Toolbox
 // @namespace    http://tampermonkey.net/
-// @version      0.2.1
+// @version      0.3
 // @description  Tools for pr0game
 // @author       Sc0t
 // @match        https://www.pr0game.com/uni*

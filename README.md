@@ -17,4 +17,17 @@ Im Shortcut Editor wird eine zusätzliche checkox angezeigt mit dem der Shortcut
 
 Ist ein Shortcut Planetenbezogen gespeichert wird dieser nur auf dem ausgewählten Planten angezeigt. Ist die Checkbox deaktiviert ist der Shortcut global gültig.
 
+### Notizen
+Fügt ein Notizfeld in der Übersicht hinzu.
+
+#### Einstellungen 
+Gültigkeitsbereich, 
+- global: Notizfeld Synct sich auf jedem Planeten.
+- planet: Jeder Planet speichert sein eigenes Notizfeld
+
+Position:
+- Verschiedene Positionen innerhalb der Übersichtsseite. Positionen wie im Bild beschrieben
+
+<img src="docu/notes_1.png" alt="Positionen Notizen" width="600"/>
+
 ### *TBD...*
