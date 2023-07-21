@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sc0ts Toolbox
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      0.2.1
 // @description  Tools for pr0game
 // @author       Sc0t
 // @match        https://www.pr0game.com/uni*
@@ -14,7 +14,6 @@
 
 
 /* Random Notes
-    - Language support (Einstellungen)
     - Add config for uni settings (on each module?) (global, current uni)
 */
 
@@ -22,11 +21,15 @@
     'use strict';
     const idPrefix = 'ST_';
 
+    // Used Language dependend Texts
+    const settingsText = ['Einstellungen', 'Ayarlar', 'Opções', 'Opcje', 'Einschdellungen', 'Настройки', 'Options', 'Configuración']
+
     //General
     /**
         Singleton
     */
     class Page {
+
         constructor() {
             //Singelton Implementation
             if (Page._instance) {
@@ -43,7 +46,7 @@
 
         _createSettingsPage(){
             let menuOptions = Array.from(document.getElementById("menu").children)
-            const settingsNode = menuOptions.filter(el => {return (el.children.length > 0 && el.firstChild.innerHTML === 'Einstellungen')})[0]
+            const settingsNode = menuOptions.filter(el => {return (el.children.length > 0 && settingsText.includes(el.firstChild.innerHTML))})[0]
             let menuNode = document.createElement("li");
             let aNode = document.createElement('a');
             aNode.appendChild(document.createTextNode("Sc0ts Toolbox"));
@@ -412,6 +415,17 @@
                     default: "disabled"
                 }
             });
+
+            this.settingConfig.set('Übersichts Notizen Gültigkeitsbereich', {
+                type: Settings.valueOptions.Select, 
+                config: {
+                    options: [
+                        {value: "global", text:"Global"},
+                        {value: "planet", text:"Planet"},
+                    ],
+                    default: "global"
+                }
+            });
         }
 
         run(){
@@ -427,6 +441,11 @@
         }
 
         _createOVerviewNotesHtml(overviewSettings){
+            let scope = this._load("Übersichts Notizen Gültigkeitsbereich");
+            if (!scope){
+                scope = "global"
+            }
+
             //Get Reference Nodes
             const positionIndex = parseInt(overviewSettings)
             const anchorNodes = document.getElementsByClassName("infos")
@@ -435,7 +454,7 @@
             const overviewContent = overviewContainer.children[2];
 
             //Clone Reference Nodes and Modify
-            const notesContainer =  overviewContainer.cloneNode(false);
+            const notesContainer = overviewContainer.cloneNode(false);
             const noteHeader = overviewHeadder.cloneNode();
             noteHeader.innerHTML = "Notizen";
             const notedataContaner = overviewContent.cloneNode();
@@ -443,7 +462,15 @@
             const textArea = document.createElement("textarea");
             textArea.style.marginTop = "20px";
             textArea.rows = 10;
-            textArea.value = this._load("notes_overview");
+
+            if (scope === 'global') {
+                textArea.value = this._load("notes_overview");
+            }
+            else{
+                textArea.value = this._load("notes_overview_" + this.page.getCurrentPlanet());
+            }
+
+            
             
             //add to HTML
             notedataContaner.appendChild(textArea);
@@ -459,7 +486,12 @@
             //add Save
             const tath = this;
             textArea.addEventListener("input", function() {
-                tath._save("notes_overview", this.value)
+                if (scope === 'global') {
+                    tath._save("notes_overview", this.value)
+                }
+                else{
+                    tath._save("notes_overview_" + tath.page.getCurrentPlanet(), this.value)
+                }
             });
         }
     }
