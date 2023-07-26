@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sc0ts Toolbox
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.3.1
 // @description  Tools for pr0game
 // @author       Sc0t
 // @match        https://www.pr0game.com/uni*
@@ -496,6 +496,71 @@
         }
     }
 
+    class GlaaxyMarker extends Module{
+        constructor() {
+            super("GM", "Galaxy Marker")
+        }
+
+        _extendSettings(){
+        }
+
+        run(){
+            let enabled = this._load("Aktiviert") || 'false';
+            if (enabled === 'false') {
+                return;
+            }
+
+            const galaxyTable = document.getElementsByClassName("table569")[0];
+            const systemHeader = galaxyTable.getElementsByTagName("th")[0];
+            const activateColorHeader = document.createElement("th");
+            activateColorHeader.innerHTML = "Einfärben";
+            activateColorHeader.style.cursor = "pointer";
+
+            const tath = this;
+            activateColorHeader.addEventListener("click", element => {
+                tath._createColorCells(galaxyTable)
+            });
+            systemHeader.parentNode.insertBefore(activateColorHeader , systemHeader .nextSibling);            
+
+        }
+
+        _createColorCells(galaxyTable) {
+            //save state and enable toggling
+            const actionHeader = galaxyTable.getElementsByTagName("th")[galaxyTable.getElementsByTagName("th").length-2];
+            const colorOptions = ["red", "green", "blue", "yellow"];
+
+            const colorHeader = actionHeader.cloneNode(true);
+            colorHeader.innerHTML = "Farbe";
+            actionHeader.parentNode.insertBefore(colorHeader , actionHeader .nextSibling);
+
+            //add Row on every Position
+            for (const row of galaxyTable.querySelectorAll("[data-info]")) {
+                            
+                //Only advance if row is a position in galaxy
+                if ( !/^p_\d{1,2}/.test(row.dataset.info)){
+                    continue;
+                }
+                const actionCell = row.lastElementChild;
+                const colorCell = document.createElement("td")
+                
+                colorOptions.forEach(element => {
+                    const circle = document.createElement("div")
+                    circle.style = "border-radius: 50%; width: 20px; height: 20px; display: block; float:left; margin: 2px; filter: brightness(50%);"
+                    circle.style.background = element;
+                    circle.style.cursor = "pointer";
+                    circle.addEventListener("click", element => {
+                        //add Save, Move to Function
+                        console.log(element)
+                        element.target.parentElement.parentElement.style.background = circle.style.background;
+                    });
+                    colorCell.appendChild(circle);
+                });
+                //add clear Color
+                actionCell.parentNode.insertBefore(colorCell , actionCell .nextSibling);
+            }
+        }
+    }
+
     //Main
     function run() {
         const page = new Page()
@@ -506,6 +571,10 @@
             case "overview":
                 notes.run()
                 break;
+            case "galaxy":
+                gM.run()
+                break;
+
             default:
                 break;
         }
@@ -514,9 +583,11 @@
 
     const pS = new PlanetShortcut()
     const notes = new Notes()
+    const gM = new GlaaxyMarker()
     const modules = [
         pS,
-        notes
+        notes,
+        gM
     ];
     const settings = new Settings()
     settings.setModules(modules)
