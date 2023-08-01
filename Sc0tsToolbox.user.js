@@ -80,12 +80,13 @@
         static valueOptions = {
             Checkbox: "checkbox",
             Select: "select",
+            Color: "color"
         }
 
         //some example of how a settings config can look like
         static settingsConfig = {
             Checkbox : {
-                checked: false,
+                default: "false", //boolean are store in Localstorage as Strings so to keep it consistent we set the default as string
             },
             Select: {
                 options: [
@@ -93,6 +94,9 @@
                     {value: "key2", text:"text2"},
                 ],
                 default: "key1"
+            },
+            Color: {
+                default: "#123abc"
             }
         }
 
@@ -167,6 +171,9 @@
                         case Settings.valueOptions.Select:
                             setting.appendChild(this._getSelect(settingKey, settingsValue.config));
                             break;
+                        case Settings.valueOptions.Color:
+                            setting.appendChild(this._getColor(settingKey, settingsValue.config));
+                            break;
                     
                         default:
                             console.log("Something went wrong. Please contact Sc0t")
@@ -222,6 +229,25 @@
             return selectList
         }
 
+        _getColor(settingKey, settingsConfig){
+            const colorInput = document.createElement('input');
+            colorInput.type = "color";
+
+            colorInput.addEventListener("change", function() {
+                this.save(settingKey, colorInput.value);
+            }.bind(this));
+
+            let savedState = this.load(settingKey)
+            if (savedState){
+                colorInput.value = savedState
+            }
+            else{
+                colorInput.value = settingsConfig.default;
+            }
+
+            return colorInput
+        }
+
         save(setting, value){
             localStorage.setItem(this.prefix + this.uni + setting, value);
         }
@@ -265,7 +291,7 @@
             this.settingConfig.set('Aktiviert', {
                 type: Settings.valueOptions.Checkbox, 
                 config: {
-                    checked: false
+                    default: 'false'
                 }
             });
            
@@ -284,8 +310,12 @@
             this.settings.save(this.moduleId + "_" + key, value)
         }
 
-        _load(key){
-            return this.settings.load(this.moduleId + "_" + key)
+        _load(key, isData=false){
+            const value = this.settings.load(this.moduleId + "_" + key)
+            if (value || isData) {
+                return value
+            }
+            return this.settingConfig.get(key).config.default
         }
 
         run(){
@@ -367,10 +397,10 @@
         }
 
         run(){
-            let enabled = this._load("Aktiviert") || 'false';
-            if (enabled === 'false') {
+            if (this._load("Aktiviert") === 'false') {
                 return;
             }
+            
             //load Current Settings
             let shortcutSettings = JSON.parse(this._load("settings")) || {};
 
@@ -429,12 +459,11 @@
         }
 
         run(){
-            let enabled = this._load("Aktiviert") || 'false';
-            if (enabled === 'false') {
+            if (this._load("Aktiviert") === 'false') {
                 return;
             }
 
-            let overviewSettings = this._load("Übersichts Notizen") || 'false';
+            let overviewSettings = this._load("Übersichts Notizen");
             if (overviewSettings != 'disabled') {
                 this._createOVerviewNotesHtml(overviewSettings);
             }
@@ -502,15 +531,72 @@
         }
 
         _extendSettings(){
+            //Add Reset
+            this.settingConfig.set('Farbe 1', {
+                type: Settings.valueOptions.Color, 
+                config: {
+                    default: "#ff0000"
+                }
+            });
+            this.settingConfig.set('Farbe 2', {
+                type: Settings.valueOptions.Color, 
+                config: {
+                    default: "#00ff00"
+                }
+            });
+            this.settingConfig.set('Farbe 3', {
+                type: Settings.valueOptions.Color, 
+                config: {
+                    default: "#0000ff"
+                }
+            });
+            this.settingConfig.set('Farbe 4', {
+                type: Settings.valueOptions.Color, 
+                config: {
+                    default: "#ffff00"
+                }
+            });
+            this.settingConfig.set('Farbe 5', {
+                type: Settings.valueOptions.Color, 
+                config: {
+                    default: "#00ffff"
+                }
+            });
+            this.settingConfig.set('Farbe 6', {
+                type: Settings.valueOptions.Color, 
+                config: {
+                    default: "#ff00ff"
+                }
+            });
         }
 
         run(){
-            let enabled = this._load("Aktiviert") || 'false';
-            if (enabled === 'false') {
+            if (this._load("Aktiviert") === 'false') {
                 return;
             }
 
             const galaxyTable = document.getElementsByClassName("table569")[0];
+            this._createHtml(galaxyTable)
+            this._loadSavedState(galaxyTable)
+        }
+
+        _loadSavedState(galaxyTable){
+            if (this._load("isColorDisplayed", true) === 'true') {
+                this._createColorCells(galaxyTable)
+            }
+            const gal = document.getElementsByName("galaxy")[0].value;
+            const sys = document.getElementsByName("system")[0].value;
+
+            let currentSettings = JSON.parse(this._load("settings", true) || "{}")  
+            currentSettings[gal] = currentSettings[gal] || {}
+            currentSettings[gal][sys] = currentSettings[gal][sys] || {}
+
+            for (const pos of Object.keys(currentSettings[gal][sys])) {
+                this._colorBackground(gal,sys,pos,currentSettings[gal][sys][pos])
+            }
+        }
+
+        _createHtml(galaxyTable){
             const systemHeader = galaxyTable.getElementsByTagName("th")[0];
             const activateColorHeader = document.createElement("th");
             activateColorHeader.innerHTML = "Einfärben";
@@ -518,19 +604,52 @@
 
             const tath = this;
             activateColorHeader.addEventListener("click", element => {
-                tath._createColorCells(galaxyTable)
+                //Check if color mode is already 
+                if (this._load("isColorDisplayed", true) === 'true') {
+                    tath._clearColorCells()
+                }else{
+                    tath._createColorCells(galaxyTable)
+                }
             });
-            systemHeader.parentNode.insertBefore(activateColorHeader , systemHeader .nextSibling);            
+            systemHeader.parentNode.insertBefore(activateColorHeader , systemHeader .nextSibling);     
+        }
 
+        _colorBackground(gal, sys, pos, color){
+
+            let currentSettings = JSON.parse(this._load("settings", true) || "{}")           
+            currentSettings[gal] = currentSettings[gal] || {}
+            currentSettings[gal][sys] = currentSettings[gal][sys] || {}
+            currentSettings[gal][sys][pos] = currentSettings[gal][sys][pos] || {}
+            const row = document.querySelector(`[data-info="p_${pos}"]`)
+            
+            if (color === row.firstElementChild.style.backgroundColor) {
+                delete currentSettings[gal][sys][pos];
+                $(row).children().css("background-color", "");
+            }else{
+                currentSettings[gal][sys][pos] = color;
+                $(row).children().css("background-color", color);
+            }
+
+            this._save("settings", JSON.stringify(currentSettings))
+        }
+
+        _clearColorCells(){
+            $("td.ST_color_cell").remove();
+            $("th.ST_color_cell").remove();
+
+            this._save("isColorDisplayed",false)
         }
 
         _createColorCells(galaxyTable) {
-            //save state and enable toggling
+            const tath = this;
+
             const actionHeader = galaxyTable.getElementsByTagName("th")[galaxyTable.getElementsByTagName("th").length-2];
-            const colorOptions = ["red", "green", "blue", "yellow"];
+            const colorOptions = [this._load("Farbe 1"), this._load("Farbe 2"), this._load("Farbe 3"),
+                                  this._load("Farbe 4"), this._load("Farbe 5"), this._load("Farbe 6")];
 
             const colorHeader = actionHeader.cloneNode(true);
             colorHeader.innerHTML = "Farbe";
+            colorHeader.className = "ST_color_cell";
             actionHeader.parentNode.insertBefore(colorHeader , actionHeader .nextSibling);
 
             //add Row on every Position
@@ -542,22 +661,28 @@
                 }
                 const actionCell = row.lastElementChild;
                 const colorCell = document.createElement("td")
+                colorCell.className = "ST_color_cell";
                 
                 colorOptions.forEach(element => {
-                    const circle = document.createElement("div")
-                    circle.style = "border-radius: 50%; width: 20px; height: 20px; display: block; float:left; margin: 2px; filter: brightness(50%);"
+                    const circle = document.createElement("div");
+                    circle.style = "border-radius: 50%; width: 20px; height: 20px; display: block; float:left; margin: 2px;";
                     circle.style.background = element;
+                    circle.style.backgroundColor = $(circle).css('background').replace(')', ', 0.33)').replace('rgb', 'rgba');
                     circle.style.cursor = "pointer";
-                    circle.addEventListener("click", element => {
-                        //add Save, Move to Function
-                        console.log(element)
-                        element.target.parentElement.parentElement.style.background = circle.style.background;
+                    
+                    circle.addEventListener("click", function(element) {
+                        const gal = document.getElementsByName("galaxy")[0].value;
+                        const sys = document.getElementsByName("system")[0].value;
+                        const pos = this.parentElement.parentElement.dataset.info.split("_")[1];
+                        const color = $(circle).css('background-color')
+                        tath._colorBackground(gal, sys, pos, color)
                     });
                     colorCell.appendChild(circle);
                 });
                 //add clear Color
                 actionCell.parentNode.insertBefore(colorCell , actionCell .nextSibling);
             }
+            this._save("isColorDisplayed",true)
         }
     }
 
