@@ -30,4 +30,12 @@ Position:
 
 <img src="docu/notes_1.png" alt="Positionen Notizen" width="600"/>
 
+### Galaxy Marker
+Fügt die Möglichkeit hinzu, Positonen in der Galaxyansicht farbig zu markieren.
+
+Dazu wird in der Galaxyansicht eine zusätzliche Spalte "Einfärben" hinzugefügt, die als toggle funktioniert, um den Einfärbemodus zu aktivieren. Ist der Einfärbemodus aktiv, kann jede Position mit einer von sechs Farben eingefärbt werden. Beispiel im Bild
+
+<img src="docu/galaxy_marker_1.png" alt="Positionen Notizen" width="600"/>
+
+
 ### *TBD...*
