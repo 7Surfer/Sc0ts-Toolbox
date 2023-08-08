@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sc0ts Toolbox
 // @namespace    http://tampermonkey.net/
-// @version      0.3.1
+// @version      0.4
 // @description  Tools for pr0game
 // @author       Sc0t
 // @match        https://www.pr0game.com/uni*
@@ -531,7 +531,7 @@
         }
 
         _extendSettings(){
-            //Add Reset
+            //Add Reset, Add Alpha
             this.settingConfig.set('Farbe 1', {
                 type: Settings.valueOptions.Color, 
                 config: {
@@ -615,7 +615,6 @@
         }
 
         _colorBackground(gal, sys, pos, color){
-
             let currentSettings = JSON.parse(this._load("settings", true) || "{}")           
             currentSettings[gal] = currentSettings[gal] || {}
             currentSettings[gal][sys] = currentSettings[gal][sys] || {}
