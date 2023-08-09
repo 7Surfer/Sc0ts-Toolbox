@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sc0ts Toolbox
 // @namespace    http://tampermonkey.net/
-// @version      0.4
+// @version      0.4.1
 // @description  Tools for pr0game
 // @author       Sc0t
 // @match        https://www.pr0game.com/uni*
@@ -97,6 +97,10 @@
             },
             Color: {
                 default: "#123abc"
+            },
+            GalaxyColor: {
+                checked: "true", //boolean are store in Localstorage as Strings so to keep it consistent we set the default as string
+                default: "#123abc"
             }
         }
 
@@ -171,8 +175,8 @@
                         case Settings.valueOptions.Select:
                             setting.appendChild(this._getSelect(settingKey, settingsValue.config));
                             break;
-                        case Settings.valueOptions.Color:
-                            setting.appendChild(this._getColor(settingKey, settingsValue.config));
+                        case Settings.valueOptions.GalaxyColor:
+                            setting.append(this._getCheckbox(settingKey + "_enabled", settingsValue.config), this._getColor(settingKey, settingsValue.config));
                             break;
                     
                         default:
@@ -533,38 +537,44 @@
         _extendSettings(){
             //Add Reset, Add Alpha
             this.settingConfig.set('Farbe 1', {
-                type: Settings.valueOptions.Color, 
+                type: Settings.valueOptions.GalaxyColor, 
                 config: {
+                    checked: "true",
                     default: "#ff0000"
                 }
             });
             this.settingConfig.set('Farbe 2', {
-                type: Settings.valueOptions.Color, 
+                type: Settings.valueOptions.GalaxyColor, 
                 config: {
+                    checked: "true",
                     default: "#00ff00"
                 }
             });
             this.settingConfig.set('Farbe 3', {
-                type: Settings.valueOptions.Color, 
+                type: Settings.valueOptions.GalaxyColor, 
                 config: {
+                    checked: "true",
                     default: "#0000ff"
                 }
             });
             this.settingConfig.set('Farbe 4', {
-                type: Settings.valueOptions.Color, 
+                type: Settings.valueOptions.GalaxyColor, 
                 config: {
+                    checked: "true",
                     default: "#ffff00"
                 }
             });
             this.settingConfig.set('Farbe 5', {
-                type: Settings.valueOptions.Color, 
+                type: Settings.valueOptions.GalaxyColor, 
                 config: {
+                    checked: "true",
                     default: "#00ffff"
                 }
             });
             this.settingConfig.set('Farbe 6', {
-                type: Settings.valueOptions.Color, 
+                type: Settings.valueOptions.GalaxyColor, 
                 config: {
+                    checked: "true",
                     default: "#ff00ff"
                 }
             });
@@ -643,8 +653,16 @@
             const tath = this;
 
             const actionHeader = galaxyTable.getElementsByTagName("th")[galaxyTable.getElementsByTagName("th").length-2];
-            const colorOptions = [this._load("Farbe 1"), this._load("Farbe 2"), this._load("Farbe 3"),
-                                  this._load("Farbe 4"), this._load("Farbe 5"), this._load("Farbe 6")];
+            const colorKeys = ["Farbe 1", "Farbe 2", "Farbe 3", "Farbe 4", "Farbe 5", "Farbe 6"]
+            let colorOptions = []
+            colorKeys.forEach(element => {
+                const savedIsColorEnabled = this._load(element + "_enabled",true)
+
+                // savedIsColorEnabled === null -> not updates so we assume the default as true
+                if( savedIsColorEnabled === 'true' || savedIsColorEnabled === null){
+                    colorOptions.push(this._load(element));
+                }
+            });
 
             const colorHeader = actionHeader.cloneNode(true);
             colorHeader.innerHTML = "Farbe";
